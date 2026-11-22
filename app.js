@@ -254,18 +254,28 @@
     $("#mealChips").innerHTML = [["all", "All recipes", "var(--ink-3)"], ...Object.entries(MEALS).map(([k, v]) => [k, v.label, v.color])]
       .map(([k, l, c]) => `<button class="chip" data-meal="${k}" aria-pressed="${S.meal === k}"><span class="dot" style="background:${c}"></span>${l}<span class="ct">${counts[k]}</span></button>`).join("");
     const myCt = { fav: S.fav.length, rated: Object.keys(S.ratings).length, notes: Object.values(S.notes).filter(n => n.t && n.t.trim()).length };
-    $("#tagChips").innerHTML = MY_FILTERS.map(([k, l]) => `<button class="chip mine" data-f="${k}" aria-pressed="${S.filters.includes(k)}">${l}<span class="ct">${myCt[k]}</span></button>`).join("") + `<span class="chip-sep" aria-hidden="true"></span>` + FILTERS.map(([k, l]) => `<button class="chip" data-f="${k}" aria-pressed="${S.filters.includes(k)}">${l}</button>`).join("")
+    $("#tagChips").innerHTML = $("#sfFilters").innerHTML = MY_FILTERS.map(([k, l]) => `<button class="chip mine" data-f="${k}" aria-pressed="${S.filters.includes(k)}">${l}<span class="ct">${myCt[k]}</span></button>`).join("") + `<span class="chip-sep" aria-hidden="true"></span>` + FILTERS.map(([k, l]) => `<button class="chip" data-f="${k}" aria-pressed="${S.filters.includes(k)}">${l}</button>`).join("")
       + (S.filters.length ? `<button class="chip" data-clear="1">✕ Clear</button>` : "");
     $("#sort").value = S.sort;
+    $("#sfSort").innerHTML = [...$("#sort").options].map(o => `<button class="chip" role="radio" data-sort="${o.value}" aria-checked="${S.sort === o.value}" aria-pressed="${S.sort === o.value}">${o.textContent}</button>`).join("");
+    const nf = S.filters.length; $("#sfCount").textContent = nf; $("#sfCount").hidden = !nf;
+    $("#sfDone").textContent = `Show ${filtered().length} recipe${filtered().length === 1 ? "" : "s"}`;
     $$(".view-toggle button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === S.view));
   }
   $("#mealChips").addEventListener("click", e => { const b = e.target.closest("[data-meal]"); if (!b) return; S.meal = b.dataset.meal; save(); renderRecipes(); });
-  $("#tagChips").addEventListener("click", e => {
+  const onFilterClick = e => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.clear) S.filters = [];
     else { const f = b.dataset.f; S.filters = S.filters.includes(f) ? S.filters.filter(x => x !== f) : [...S.filters, f]; }
     save(); renderRecipes();
-  });
+  };
+  $("#tagChips").addEventListener("click", onFilterClick);
+  $("#sfFilters").addEventListener("click", onFilterClick);
+  const sfDlg = $("#sfDlg");
+  $("#sfBtn").onclick = () => { renderChips(); sfDlg.showModal(); };
+  $("#sfSort").addEventListener("click", e => { const b = e.target.closest("[data-sort]"); if (!b) return; S.sort = b.dataset.sort; save(); renderRecipes(); });
+  $("#sfClear").onclick = () => { S.filters = []; save(); renderRecipes(); };
+  sfDlg.addEventListener("click", e => { if (e.target === sfDlg || e.target.closest("[data-sfclose]")) sfDlg.close(); });
   $("#sort").onchange = e => { S.sort = e.target.value; save(); renderRecipes(); };
   $("#search").addEventListener("input", () => renderRecipes());
   $$(".view-toggle button").forEach(b => b.onclick = () => { S.view = b.dataset.view; save(); renderRecipes(); });
