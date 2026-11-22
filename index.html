@@ -111,6 +111,7 @@
               <option value="rating">My ratings</option>
             </select>
           </label>
+          <button class="sf-btn" id="sfBtn" aria-haspopup="dialog"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Sort &amp; filter<span class="badge" id="sfCount" hidden>0</span></button>
           <div class="view-toggle" role="group" aria-label="View">
             <button data-view="cards" aria-pressed="true" title="Cards"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg><span>Cards</span></button>
             <button data-view="chart" aria-pressed="false" title="Compare"><svg viewBox="0 0 24 24"><path d="M4 5h9M4 10h15M4 15h6M4 20h12"/></svg><span>Compare</span></button>
@@ -119,7 +120,6 @@
       </div>
 
       <div class="chips" id="mealChips" role="group" aria-label="Meal type"></div>
-      <button class="tags-toggle" id="tagsToggle" aria-expanded="false" aria-controls="tagChips">Tags<span class="badge" id="tagCount" hidden>0</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
       <div class="chips chips-tags" id="tagChips" role="group" aria-label="Filters"></div>
 
       <p class="result-count" id="resultCount"></p>
@@ -195,6 +195,23 @@
       <button class="btn small" id="trayGo">View groceries →</button>
     </div>
   </div>
+
+  <dialog id="sfDlg" class="sheet" aria-labelledby="sfTitle">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="sfTitle">Sort &amp; filter</h2>
+        <button class="d-close" aria-label="Close" data-sfclose><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+      <h3 class="sheet-sub">Sort by</h3>
+      <div class="chips" id="sfSort" role="radiogroup" aria-label="Sort by"></div>
+      <h3 class="sheet-sub">Filter</h3>
+      <div class="chips chips-tags" id="sfFilters" role="group" aria-label="Filters"></div>
+      <div class="sheet-foot">
+        <button class="btn ghost" id="sfClear">Clear filters</button>
+        <button class="btn accent" data-sfclose id="sfDone">Show recipes</button>
+      </div>
+    </div>
+  </dialog>
 
   <dialog id="detail" aria-labelledby="dTitle">
     <div class="d-inner" id="dBody"></div>
