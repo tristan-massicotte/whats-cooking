@@ -40,7 +40,7 @@
 
   /* ---------------- state ---------------- */
   const KEY = "batchkitchen.v1";
-  const defaults = { level: "normal", portions: 7, picks: [], ticks: {}, own: [], plan: {}, targets: {}, meal: "all", filters: [], sort: "name", view: "cards", metric: "fib", tab: "recipes", theme: null };
+  const defaults = { level: "normal", portions: 7, picks: [], ticks: {}, own: [], plan: {}, targets: {}, meal: "all", filters: [], sort: "name", view: "cards", metric: "fib", tab: "recipes", theme: null, accent: "green" };
   let S = { ...defaults };
   try { S = { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (e) { /* storage blocked */ }
   S.picks = S.picks.filter(id => byId[id]);
@@ -172,6 +172,32 @@
     S.theme = dark ? "light" : "dark"; save(); applyTheme();
   };
 
+  /* ---------------- accent color (click the logo) ---------------- */
+  const ACCENTS = {
+    green: ["Green", "#1f8a4c", "#4cc47f"], teal: ["Teal", "#0f7f86", "#3cc3c9"], blue: ["Blue", "#2f6fd6", "#6aa2f5"], indigo: ["Indigo", "#5b4fd6", "#9a90f5"],
+    purple: ["Purple", "#8a3fc2", "#c08af0"], pink: ["Pink", "#c93a7c", "#f07fb4"], red: ["Red", "#d1373a", "#f57a73"], orange: ["Orange", "#e8572a", "#ff7a4d"],
+    amber: ["Amber", "#b86e00", "#f2b84f"], olive: ["Olive", "#6b7a1c", "#b6c95a"], brown: ["Cocoa", "#8a5a3c", "#d0a07c"], slate: ["Slate", "#475569", "#a3b2c7"],
+  };
+  function applyAccent() {
+    const a = ACCENTS[S.accent] || ACCENTS.green, root = document.documentElement.style;
+    root.setProperty("--accent-l", a[1]); root.setProperty("--accent-d", a[2]);
+    $$("#swatches .sw").forEach(b => b.setAttribute("aria-checked", b.dataset.accent === (S.accent || "green")));
+  }
+  $("#swatches").innerHTML = Object.entries(ACCENTS).map(([k, [name, c]]) => `<button class="sw" role="radio" data-accent="${k}" style="--sw:${c}" aria-label="${name}" title="${name}"></button>`).join("");
+  const pop = $("#accentPop"), brandBtn = $("#brandBtn");
+  const setPop = open => { pop.hidden = !open; brandBtn.setAttribute("aria-expanded", open); };
+  brandBtn.onclick = e => { e.stopPropagation(); if ($("#contactPop")) { $("#contactPop").hidden = true; $("#contactBtn").setAttribute("aria-expanded", false); } setPop(pop.hidden); };
+  $("#swatches").addEventListener("click", e => { const b = e.target.closest(".sw"); if (!b) return; S.accent = b.dataset.accent; save(); applyAccent(); });
+  document.addEventListener("click", e => { if (!pop.hidden && !e.target.closest(".brand-wrap")) setPop(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !pop.hidden) { setPop(false); brandBtn.focus(); } });
+
+  /* ---------------- contact popover ---------------- */
+  const cPop = $("#contactPop"), cBtn = $("#contactBtn");
+  const setCPop = open => { cPop.hidden = !open; cBtn.setAttribute("aria-expanded", open); };
+  cBtn.onclick = e => { e.stopPropagation(); setPop(false); setCPop(cPop.hidden); };
+  document.addEventListener("click", e => { if (!cPop.hidden && !e.target.closest(".contact-wrap")) setCPop(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !cPop.hidden) { setCPop(false); cBtn.focus(); } });
+
   /* ---------------- recipes view ---------------- */
   function filtered() {
     const q = $("#search").value.trim().toLowerCase();
@@ -250,8 +276,9 @@
     $("#resultCount").textContent = `${list.length} recipe${list.length === 1 ? "" : "s"} · macros per ${LEVELS[S.level].label.toLowerCase()} portion`;
     $("#emptyMsg").hidden = list.length > 0;
     const chart = S.view === "chart";
-    $("#grid").hidden = chart; $("#chartWrap").hidden = !chart || !list.length;
-    if (chart) renderChart(list); else $("#grid").innerHTML = list.map(card).join("");
+    $("#chartWrap").hidden = !chart || !list.length;
+    if (chart) renderChart(list);
+    $("#grid").innerHTML = list.map(card).join("");
   }
   function togglePick(id) {
     const on = !S.picks.includes(id);
@@ -507,6 +534,7 @@
     if (dlg.open) { const id = location.hash.slice(1); if (byId[id]) openDetail(id); }
   }
   applyTheme();
+  applyAccent();
   renderAll();
   showTab(S.tab);
   const h = location.hash.slice(1); if (byId[h]) openDetail(h);

@@ -1,4 +1,4 @@
-# Batch Kitchen
+# What's cooking?
 
 High-protein batch-cooking recipes you can scale to your appetite and portion count.
 
