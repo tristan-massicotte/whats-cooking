@@ -25,6 +25,8 @@
   --main: #e8572a;
   --bfast: #e9a23b;
   --quick: #8a63d2;
+  --heart: #e0245e; --heart-soft: #fde2ea;
+  --star: #f2a516; --star-soft: #fdf0cf; --star-ink: #8a5a00;
   --shadow: 0 1px 2px rgba(60, 40, 10, .06), 0 6px 20px -8px rgba(60, 40, 10, .18);
   --shadow-lg: 0 24px 60px -20px rgba(40, 25, 5, .45);
   --r: 18px;
@@ -42,6 +44,7 @@
     --good: #5cc98a; --good-soft: #173a26; --warn: #ff9a5c; --warn-soft: #43230f;
     --p: #ff7a4d; --c: #f2b84f; --f: #6aaaf0; --fib: #5cc98a;
     --main: #ff7a4d; --bfast: #f2b84f; --quick: #a688ea;
+    --heart: #ff5c8a; --heart-soft: #4a1a2a; --star: #f7bd3c; --star-soft: #3d300f; --star-ink: #f7cf6b;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -10px rgba(0,0,0,.6);
     --shadow-lg: 0 24px 60px -16px rgba(0,0,0,.8);
     color-scheme: dark;
@@ -54,6 +57,7 @@
   --good: #5cc98a; --good-soft: #173a26; --warn: #ff9a5c; --warn-soft: #43230f;
   --p: #ff7a4d; --c: #f2b84f; --f: #6aaaf0; --fib: #5cc98a;
   --main: #ff7a4d; --bfast: #f2b84f; --quick: #a688ea;
+    --heart: #ff5c8a; --heart-soft: #4a1a2a; --star: #f7bd3c; --star-soft: #3d300f; --star-ink: #f7cf6b;
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -10px rgba(0,0,0,.6);
   --shadow-lg: 0 24px 60px -16px rgba(0,0,0,.8);
   color-scheme: dark;
@@ -171,6 +175,36 @@ h1, h2, h3, h4 { font-family: var(--display); line-height: 1.1; margin: 0; lette
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; transition: transform .18s ease, box-shadow .18s ease, border-color .18s; position: relative; }
 .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 .card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+.fav-btn { position: absolute; top: 10px; right: 10px; z-index: 2; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink-3); display: grid; place-items: center; transition: transform .15s, color .15s, background .15s; }
+.fav-btn svg { width: 19px; height: 19px; }
+.fav-btn:hover { color: var(--heart); transform: scale(1.08); }
+.fav-btn.on { color: var(--heart); background: var(--heart-soft); border-color: transparent; }
+.fav-btn.on svg, .fav-toggle.on svg { fill: currentColor; }
+.fav-btn.on { animation: beat .3s ease; }
+@keyframes beat { 50% { transform: scale(1.22); } }
+.card .eyebrow, .card h3 { padding-right: 40px; }
+.tag.mine-rate { background: var(--star-soft); color: var(--star-ink); }
+.tag.mine-note { background: var(--accent-soft); color: var(--accent); }
+.chip.mine[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip-sep { width: 1px; align-self: stretch; background: var(--line-2); margin: 4px 2px; }
+.mine-row { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; margin-top: 2px; }
+.btn.fav-toggle.on { color: var(--heart); border-color: var(--heart); background: var(--heart-soft); }
+.rate-wrap { display: flex; align-items: center; gap: 10px; }
+.rate-lbl { font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
+.stars { display: flex; }
+.star { border: 0; background: none; padding: 2px; color: var(--line-2); transition: transform .12s, color .12s; }
+.star svg { width: 26px; height: 26px; stroke-width: 1.6; }
+.star.on { color: var(--star); }
+.star.on svg { fill: currentColor; }
+.stars:hover .star { color: var(--star); }
+.stars:hover .star svg { fill: currentColor; }
+.stars .star:hover ~ .star { color: var(--line-2); }
+.stars .star:hover ~ .star svg { fill: none; }
+.star:hover { transform: scale(1.15); }
+.notes-sec textarea { width: 100%; resize: vertical; border: 1.5px solid var(--line); background: var(--surface-2); border-radius: 14px; padding: 12px 14px; font: 15.5px/1.5 var(--body); color: var(--ink); outline: none; transition: border-color .15s, background .15s; }
+.notes-sec textarea:focus { border-color: var(--accent); background: var(--surface); }
+.notes-sec textarea::placeholder { color: var(--ink-3); }
+.note-hint { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-3); }
 .card-top { padding: 16px 18px 0; cursor: pointer; flex: 1; display: flex; flex-direction: column; }
 .eyebrow { display: flex; align-items: center; gap: 8px; font: 700 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
 .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; }

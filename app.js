@@ -33,6 +33,7 @@
     r.flags = f;
     r.search = (r.name + " " + r.short + " " + r.base + " " + r.tags.join(" ") + " " + r.ing.map(i => i.name).join(" ")).toLowerCase();
   }
+  const MY_FILTERS = [["fav", "♥ Favourites"], ["rated", "★ Rated"], ["notes", "✎ With my notes"]];
   const FILTERS = [
     ["veg", "Vegetarian"], ["pasta", "Pasta"], ["rice", "Rice"], ["potato", "Potatoes"], ["texmex", "Tex-Mex"], ["asian", "Asian-style"],
     ["fibre", "High fibre (15 g+)"], ["protein", "High protein"], ["fast", "45 min or less"], ["nooven", "No oven"],
@@ -40,7 +41,7 @@
 
   /* ---------------- state ---------------- */
   const KEY = "batchkitchen.v1";
-  const defaults = { level: "normal", portions: 7, picks: [], ticks: {}, own: [], plan: {}, targets: {}, meal: "all", filters: [], sort: "name", view: "cards", metric: "fib", tab: "recipes", theme: null, accent: "green" };
+  const defaults = { level: "normal", portions: 7, picks: [], ticks: {}, own: [], plan: {}, targets: {}, meal: "all", filters: [], sort: "name", view: "cards", metric: "fib", tab: "recipes", theme: null, accent: "green", fav: [], ratings: {}, notes: {} };
   let S = { ...defaults };
   try { S = { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (e) { /* storage blocked */ }
   S.picks = S.picks.filter(id => byId[id]);
@@ -198,13 +199,53 @@
   document.addEventListener("click", e => { if (!cPop.hidden && !e.target.closest(".contact-wrap")) setCPop(false); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !cPop.hidden) { setCPop(false); cBtn.focus(); } });
 
+  /* ---------------- favourites, ratings, notes ---------------- */
+  const isFav = id => S.fav.includes(id);
+  const rating = id => S.ratings[id] || 0;
+  const note = id => (S.notes[id] && S.notes[id].t) || "";
+  function hasFlag(r, f) {
+    if (f === "fav") return isFav(r.id);
+    if (f === "rated") return rating(r.id) > 0;
+    if (f === "notes") return !!note(r.id).trim();
+    return r.flags.has(f);
+  }
+  const ICON_HEART = `<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9.2C1.6 7.3 3.8 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.4 0 5.6 3.3 4.2 6.8C19 15.6 12 20 12 20z"/></svg>`;
+  const ICON_STAR = `<svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>`;
+  const fmtDate = t => new Date(t).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
+  function refreshRecipe(id) {
+    if (S.filters.some(f => MY_FILTERS.some(([k]) => k === f)) || S.sort === "rating") { renderRecipes(); return; }
+    $$(`.card[data-id="${id}"]`).forEach(el => el.outerHTML = card(byId[id]));
+  }
+  function favBtnHTML(id) {
+    const on = isFav(id);
+    return `<button class="btn ghost small fav-toggle ${on ? "on" : ""}" data-fav="${id}" aria-pressed="${on}">${ICON_HEART}${on ? "Favourite" : "Add to favourites"}</button>`;
+  }
+  function starsHTML(id) {
+    const v = rating(id);
+    return `<div class="stars" role="group" aria-label="Your rating">${[1, 2, 3, 4, 5].map(n => `<button class="star ${n <= v ? "on" : ""}" data-rate="${id}" data-n="${n}" aria-label="${n} star${n > 1 ? "s" : ""}" aria-pressed="${n <= v}">${ICON_STAR}</button>`).join("")}</div>`;
+  }
+  function toggleFav(id) {
+    S.fav = isFav(id) ? S.fav.filter(x => x !== id) : [...S.fav, id]; save();
+    toast(isFav(id) ? `♥ Added to favourites` : `Removed from favourites`);
+    const b = $(`#detail [data-fav="${id}"]`); if (b) b.outerHTML = favBtnHTML(id);
+    refreshRecipe(id); renderChips();
+  }
+  function setRating(id, n) {
+    if (rating(id) === n) delete S.ratings[id]; else S.ratings[id] = n;
+    save();
+    const st = $("#detail .stars"); if (st) st.outerHTML = starsHTML(id);
+    const lbl = $("#rateLbl"); if (lbl) lbl.textContent = rating(id) ? ["", "Not for me", "It was OK", "Good", "Really good", "Loved it!"][rating(id)] : "Tap to rate";
+    refreshRecipe(id); renderChips();
+  }
+
   /* ---------------- recipes view ---------------- */
   function filtered() {
     const q = $("#search").value.trim().toLowerCase();
-    let list = R.filter(r => (S.meal === "all" || r.meal === S.meal) && S.filters.every(f => r.flags.has(f)) && (!q || q.split(/\s+/).every(w => r.search.includes(w))));
+    let list = R.filter(r => (S.meal === "all" || r.meal === S.meal) && S.filters.every(f => hasFlag(r, f)) && (!q || q.split(/\s+/).every(w => r.search.includes(w))));
     const sorters = {
       name: (a, b) => a.name.localeCompare(b.name), p: (a, b) => b.p - a.p, fib: (a, b) => (b.fib ?? -1) - (a.fib ?? -1),
       kcal: (a, b) => b.kcal - a.kcal, kcalAsc: (a, b) => a.kcal - b.kcal, time: (a, b) => a.mins - b.mins, pdens: (a, b) => b.p / b.kcal - a.p / a.kcal,
+      rating: (a, b) => rating(b.id) - rating(a.id) || isFav(b.id) - isFav(a.id) || a.name.localeCompare(b.name),
     };
     return list.sort(sorters[S.sort] || sorters.name);
   }
@@ -212,7 +253,8 @@
     const counts = { all: R.length }; R.forEach(r => counts[r.meal] = (counts[r.meal] || 0) + 1);
     $("#mealChips").innerHTML = [["all", "All recipes", "var(--ink-3)"], ...Object.entries(MEALS).map(([k, v]) => [k, v.label, v.color])]
       .map(([k, l, c]) => `<button class="chip" data-meal="${k}" aria-pressed="${S.meal === k}"><span class="dot" style="background:${c}"></span>${l}<span class="ct">${counts[k]}</span></button>`).join("");
-    $("#tagChips").innerHTML = FILTERS.map(([k, l]) => `<button class="chip" data-f="${k}" aria-pressed="${S.filters.includes(k)}">${l}</button>`).join("")
+    const myCt = { fav: S.fav.length, rated: Object.keys(S.ratings).length, notes: Object.values(S.notes).filter(n => n.t && n.t.trim()).length };
+    $("#tagChips").innerHTML = MY_FILTERS.map(([k, l]) => `<button class="chip mine" data-f="${k}" aria-pressed="${S.filters.includes(k)}">${l}<span class="ct">${myCt[k]}</span></button>`).join("") + `<span class="chip-sep" aria-hidden="true"></span>` + FILTERS.map(([k, l]) => `<button class="chip" data-f="${k}" aria-pressed="${S.filters.includes(k)}">${l}</button>`).join("")
       + (S.filters.length ? `<button class="chip" data-clear="1">✕ Clear</button>` : "");
     $("#sort").value = S.sort;
     $$(".view-toggle button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === S.view));
@@ -241,8 +283,12 @@
   }
   function card(r) {
     const picked = S.picks.includes(r.id), M = MEALS[r.meal];
-    const tags = [...(r.flags.has("veg") ? [`<span class="tag veg">Vegetarian</span>`] : []), ...r.tags.filter(t => !/vegetarian/i.test(t)).slice(0, 3).map(t => `<span class="tag">${esc(t)}</span>`)].join("");
+    const rv = rating(r.id), nt = note(r.id).trim();
+    const mine = [rv ? `<span class="tag mine-rate">★ ${rv}/5</span>` : "", nt ? `<span class="tag mine-note" title="${esc(nt)}">✎ My note</span>` : ""].join("");
+    const tags = mine + [...(r.flags.has("veg") ? [`<span class="tag veg">Vegetarian</span>`] : []), ...r.tags.filter(t => !/vegetarian/i.test(t)).slice(0, 3).map(t => `<span class="tag">${esc(t)}</span>`)].join("");
+    const fav = isFav(r.id);
     return `<article class="card ${picked ? "picked" : ""}" data-id="${r.id}">
+      <button class="fav-btn ${fav ? "on" : ""}" data-fav="${r.id}" aria-pressed="${fav}" aria-label="${fav ? "Remove from" : "Add to"} favourites" title="${fav ? "Remove from" : "Add to"} favourites">${ICON_HEART}</button>
       <div class="card-top" data-open="${r.id}" tabindex="0" role="button" aria-label="Open ${esc(r.name)}">
         <div class="eyebrow"><span class="dot" style="background:${M.color}"></span>${M.short}</div>
         <h3><a href="${gImg(r.name)}" target="_blank" rel="noopener" title="See photos">${esc(r.name)}</a></h3>
@@ -293,6 +339,8 @@
   }
   document.addEventListener("click", e => {
     const pk = e.target.closest("[data-pick]"); if (pk) { e.preventDefault(); togglePick(pk.dataset.pick); return; }
+    const fv = e.target.closest("[data-fav]"); if (fv) { e.preventDefault(); toggleFav(fv.dataset.fav); return; }
+    const rt = e.target.closest("[data-rate]"); if (rt) { e.preventDefault(); setRating(rt.dataset.rate, +rt.dataset.n); return; }
     if (e.target.closest("a")) return;
     const op = e.target.closest("[data-open]"); if (op) openDetail(op.dataset.open);
   });
@@ -335,6 +383,10 @@
           ${r.time ? `<span>${ICON_CLOCK}${esc(r.time)}</span>` : ""}${r.hands ? `<span>${ICON_HAND}${esc(r.hands)} hands-on</span>` : ""}${r.base ? `<span>${ICON_BOWL}${esc(r.base)}</span>` : ""}
         </div>
         <div class="tags">${tags}</div>
+        <div class="mine-row">
+          ${favBtnHTML(r.id)}
+          <div class="rate-wrap">${starsHTML(r.id)}<span class="rate-lbl" id="rateLbl">${rating(r.id) ? ["", "Not for me", "It was OK", "Good", "Really good", "Loved it!"][rating(r.id)] : "Tap to rate"}</span></div>
+        </div>
       </div>
       <div class="d-body">
         <div class="d-stats">
@@ -346,6 +398,12 @@
         </div>
         ${ebar(r)}
         <p class="batch-line">Whole batch (${n} ${LEVELS[S.level].label.toLowerCase()} portion${n === 1 ? "" : "s"}): <span class="num">${fmtInt(m(r, "kcal") * n)} kcal · ${fmtInt(m(r, "p") * n)} g protein · ${fmtInt(m(r, "c") * n)} g carbs · ${fmtInt(m(r, "f") * n)} g fat</span></p>
+
+        <div class="d-sec notes-sec">
+          <h3>My notes <small id="noteSaved">${S.notes[r.id] && note(r.id) ? "Last edited " + fmtDate(S.notes[r.id].at) : ""}</small></h3>
+          <textarea id="noteBox" data-note="${r.id}" rows="3" maxlength="4000" placeholder="Leave yourself a note for next time: swaps you made, what to change, how it turned out…">${esc(note(r.id))}</textarea>
+          <p class="note-hint">Saved automatically, only on this device.</p>
+        </div>
 
         <div class="d-sec">
           <h3>Ingredients <small>for ${n} portion${n === 1 ? "" : "s"}${scaled ? ` · ×${f.toFixed(2)}` : ""}</small></h3>
@@ -365,12 +423,30 @@
         <button class="btn ghost" data-close>Close</button>
         <button class="btn ${picked ? "picked" : "accent"}" data-pick="${r.id}">${picked ? ICON_CHECK + "Picked for groceries" : ICON_PLUS + "Add to groceries"}</button>
       </div>`;
+    dlg.dataset.id = id;
+    const nb = $("#noteBox"); autosize(nb);
     if (!dlg.open) dlg.showModal();
     $(".d-inner").scrollTop = 0;
     history.replaceState(null, "", "#" + id);
   }
   dlg.addEventListener("click", e => { if (e.target === dlg || e.target.closest("[data-close]")) dlg.close(); });
-  dlg.addEventListener("close", () => history.replaceState(null, "", location.pathname + location.search));
+  dlg.addEventListener("close", () => {
+    history.replaceState(null, "", location.pathname + location.search);
+    if (dlg.dataset.id) { refreshRecipe(dlg.dataset.id); renderChips(); }
+  });
+  function autosize(t) { if (!t) return; t.style.height = "auto"; t.style.height = Math.max(84, t.scrollHeight + 2) + "px"; }
+  let noteTimer;
+  dlg.addEventListener("input", e => {
+    const t = e.target.closest("#noteBox"); if (!t) return;
+    autosize(t);
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => {
+      const id = t.dataset.note, v = t.value;
+      if (v.trim()) S.notes[id] = { t: v, at: Date.now() }; else delete S.notes[id];
+      save();
+      $("#noteSaved").textContent = v.trim() ? "Saved ✓" : "";
+    }, 350);
+  });
 
   /* ---------------- plan ---------------- */
   const SLOTS = [["b", "Breakfast", r => r.meal !== "main"], ["l", "Lunch", r => r.meal === "main"], ["d", "Dinner", r => r.meal === "main"]];
