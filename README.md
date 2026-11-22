@@ -2,7 +2,7 @@
 
 High-protein batch-cooking recipes you can scale to your appetite and portion count.
 
-**Live site:** https://tristan-massicotte.github.io/batch-kitchen/
+**Live site:** https://tristan-massicotte.github.io/whats-cooking/
 
 - **64 recipes**: lunch/dinner batches, breakfast batches and quick single-serving breakfasts
 - **Appetite setting**: Light (50%), Normal (70%) or Big eater (100%). Macros, ingredients and step amounts adjust
